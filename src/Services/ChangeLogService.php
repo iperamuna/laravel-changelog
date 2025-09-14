@@ -34,7 +34,7 @@ class ChangeLogService
      */
     public function __construct()
     {
-        $this->changelogPath = config('changelog.path') . '/a' .config('changelog.filename');
+        $this->changelogPath = config('changelog.path') . '/' .config('changelog.filename');
 
         $dir = Cache::getStore() instanceof FileStore
             ? Cache::getStore()->getDirectory()
@@ -48,6 +48,12 @@ class ChangeLogService
 
         $this->temporaryChangelogFilePath = $changePath . '/temp-changelog.json';
         $this->versionLinks = [''];
+    }
+
+    public function isChangeLogExist(): bool
+    {
+        return File::exists($this->changelogPath);
+
     }
 
     /**

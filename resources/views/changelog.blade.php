@@ -46,6 +46,5 @@
             </div>
         </div>
     </div>
-    @include('laravel-changelog::partials.footer')
 </x-laravel-changelog::layouts.changelog>
 

@@ -13,7 +13,7 @@ use League\CommonMark\Exception\CommonMarkException;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
-class AddToChangeLog extends Command
+class ChangelogEditRelease extends Command
 {
 
     protected ChangeLogDataService $changeLogDataService;
@@ -35,14 +35,14 @@ class AddToChangeLog extends Command
      *
      * @var string
      */
-    protected $signature = 'changelog:add-release';
+    protected $signature = 'changelog:edit-release';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Adding a release to the changelog';
+    protected $description = 'Modify Existing Release to the changelog';
 
     /**
      * Execute the console command.
@@ -52,38 +52,24 @@ class AddToChangeLog extends Command
     public function handle()
     {
 
-        $changeLogData = $this->changelogService->getTemporaryChangeLog();
+        $releases = $this->changeLogDataService->getChangeLogReleases();
 
-        $this->changeLogDataService->setChangeLogData($changeLogData);
+        $selectedRelease = select('Select the release you want to edit', $releases);
 
-        $lastReleaseVersion = $this->changeLogDataService->getLastReleaseVersion();
+        $selectedReleaseContent = $this->changeLogDataService->getReleaseContent($selectedRelease);
 
-        $message = 'This is your first release. What type of Release you wants to add?';
-        if($lastReleaseVersion) {
-           $lastRelease = $lastReleaseVersion['heading'];
-           $message = '['. $lastRelease . '] is your last release. What type of Release you wants to add?';
-        }
-
-        $releaseTypeOption = collect(SemanticVersionTypes::cases())
-            ->mapWithKeys(fn($case) => [$case->lowercase() => $case->description()])
-            ->all();
-
-        $releaseType = select($message, $releaseTypeOption);
-
-        $sujjestedRelease = $this->semverService->bump($lastReleaseVersion['heading'], $releaseType);
-
-        $newReleaseVersion = text(
+        $releaseVersion = text(
             label:  'What is the version of the release?',
             validate: function (string $value) {
                 return preg_match(SemverRule::REGEX, $value)
                     ? null
                     : 'Please enter a valid SemVer: 1.2.3';
             },
-            default: $sujjestedRelease);
+            default: $selectedReleaseContent['heading']);
 
-        $releaseDate = text('What is the date of the release? (YYYY-MM-DD)', '2022-01-01');
+        $releaseDate = text('What is the date of the release? (YYYY-MM-DD)', default: $selectedReleaseContent['date'] );
 
-        $releaseUrl = text('What is the url of the release? (https://example.com/release/1.2.3)');
+        $releaseUrl = text('What is the url of the release? (https://example.com/release/1.2.3)', default: $selectedReleaseContent['url']);
 
         $releaseSections = ChangelogChangeTypes::cases();
 
@@ -92,8 +78,14 @@ class AddToChangeLog extends Command
 
             $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
+
+            if(isset($selectedReleaseContent['content'][$releaseSection->value])) {
+                $contents = $selectedReleaseContent['content'][$releaseSection->value];
+
+            }
+            $iteration = 0;
             while (true){
-                $content = text('Line '. $lineCount++);
+                $content = text('Line '. $lineCount++, default: $contents[$iteration++] ?? '');
                 if($content === '') {
                     break;
                 }else{
@@ -103,24 +95,14 @@ class AddToChangeLog extends Command
 
         }
 
-        $releaseContentFormatted = $this->formatReleaseContent($newReleaseVersion, $releaseDate, $releaseUrl, $releaseSectionContent);
-        $this->changeLogDataService->addNewChangeLogData($releaseContentFormatted);
+        $releaseContentFormatted = $this->changeLogDataService->formatReleaseContent($releaseVersion, $releaseDate, $releaseUrl, $releaseSectionContent);
+        $this->changeLogDataService->updateRelease($selectedRelease, $releaseContentFormatted);
         $this->changelogService->setChangeLog();
-        $this->info('Release added successfully');
+        $this->info('Release Updated successfully');
         return self::SUCCESS;
 
     }
 
-    private function formatReleaseContent(string $newReleaseVersion, string $releaseDate, string $releaseUrl, array $releaseSectionContent): array
-    {
-        return ["$newReleaseVersion - $releaseDate" => [
-                'release' => "$newReleaseVersion - $releaseDate",
-                'heading' => $newReleaseVersion,
-                'date' => $releaseDate,
-                'url' => $releaseUrl,
-                'content' => $releaseSectionContent,
-            ]
-        ];
-    }
+
 
 }

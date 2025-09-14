@@ -135,8 +135,11 @@ class LaravelChangelogServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Console\Commands\AddToChangeLog::class,
+                Console\Commands\ChangelogAddNewRelease::class,
                 Console\Commands\InitChangeLog::class,
+                Console\Commands\ChangelogAddUnreleased::class,
+                Console\Commands\ChangelogEditRelease::class,
+                Console\Commands\ChangelogPromoteUnRelease::class
             ]);
         }
     }

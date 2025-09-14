@@ -8,4 +8,8 @@ return [
 
     'url' => '/changelog',
 
+    'secure' => false,
+
+    'guard' => 'web',
+
 ];

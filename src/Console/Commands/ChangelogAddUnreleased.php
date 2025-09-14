@@ -19,7 +19,7 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\textarea;
 
-class InitChangeLog extends Command
+class ChangelogAddUnreleased extends Command
 {
 
     protected ChangeLogService $changelogService;
@@ -38,14 +38,14 @@ class InitChangeLog extends Command
      *
      * @var string
      */
-    protected $signature = 'changelog:init';
+    protected $signature = 'changelog:unreleased';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Initializing a changelog file';
+    protected $description = 'Add or Change Unreleased section in the changelog file. If the section already exists, it will be overwritten. If the section does not exist, it will be created.';
 
     /**
      * Execute the console command.
@@ -55,37 +55,27 @@ class InitChangeLog extends Command
     public function handle()
     {
 
-        if($this->changelogService->isChangeLogExist()){
-            $this->error('Changelog file already exists');
+        if(!$this->changelogService->isChangeLogExist()){
+            $this->error('Changelog file not found. Please run the command "changelog:init" to create a new changelog file.');
             return self::FAILURE;
         }
 
-        $this->info('Initializing a changelog file');
+        $this->info('Check for unreleased section in the changelog file. If it exists');
 
-        $headerContent = [];
-        while (true){
-            $this->info('Add Content to Unreleased section, line by line. Empty line to finish the section.');
-            $contentLine = textarea('Changelog Header Content');
-            if($contentLine === ''){
-                break;
-            }
-            $headerContent[] = $contentLine;
-        }
+        $existingUnReleasedSection = $this->changeLogDataService->getUnreleasedVersion();
 
-        $unReleasedVersion = [];
-        $addUnReleased = confirm('Do you want to add an Unreleased section?');
-        if($addUnReleased){
-            $unReleasedVersion = ChangelogChangeTypes::cases();
-        }
+        $unReleasedSection = $this->addEditUnreleasedSection($existingUnReleasedSection);
 
-        $this->changeLogDataService->initChangeLogData($headerContent, $unReleasedVersion);
+        $this->changeLogDataService->setUnreleasedVersion($unReleasedSection);
+
         $this->changelogService->setChangeLog();
-        $this->info('Changelog file initialized successfully');
+        $this->info('Changelog file Updated successfully');
         return self::SUCCESS;
     }
 
-    public function addUnreleasedSection()
+    public function addEditUnreleasedSection(bool|array $existingUnSection = false)
     {
+
         $releaseSections = ChangelogChangeTypes::cases();
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
