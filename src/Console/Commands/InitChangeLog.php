@@ -2,22 +2,16 @@
 
 namespace Iperamuna\LaravelChangelog\Console\Commands;
 
-use App\Rules\SemverRule;
 use Iperamuna\LaravelChangelog\Enums\ChangelogChangeTypes;
-use Iperamuna\LaravelChangelog\Enums\SemanticVersionTypes;
 use Iperamuna\LaravelChangelog\Services\ChangeLogDataService;
 use Iperamuna\LaravelChangelog\Services\ChangeLogService;
-use Illuminate\Cache\FileStore;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
-use League\CommonMark\Environment\Environment;
 use League\CommonMark\Exception\CommonMarkException;
-use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
-use League\CommonMark\MarkdownConverter;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\textarea;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\error;
 
 class InitChangeLog extends Command
 {
@@ -56,15 +50,15 @@ class InitChangeLog extends Command
     {
 
         if($this->changelogService->isChangeLogExist()){
-            $this->error('Changelog file already exists');
+            error('Changelog file already exists');
             return self::FAILURE;
         }
 
-        $this->info('Initializing a changelog file');
+        info('Initializing a changelog file');
 
         $headerContent = [];
         while (true){
-            $this->info('Add Content to Unreleased section, line by line. Empty line to finish the section.');
+            info('Add Content to Unreleased section, line by line. Empty line to finish the section.');
             $contentLine = textarea('Changelog Header Content');
             if($contentLine === ''){
                 break;
@@ -80,17 +74,17 @@ class InitChangeLog extends Command
 
         $this->changeLogDataService->initChangeLogData($headerContent, $unReleasedVersion);
         $this->changelogService->setChangeLog();
-        $this->info('Changelog file initialized successfully');
+        info('Changelog file initialized successfully');
         return self::SUCCESS;
     }
 
-    public function addUnreleasedSection()
+    public function addUnreleasedSection(): array
     {
         $releaseSections = ChangelogChangeTypes::cases();
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
 
-            $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
+            info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
             while (true){
                 $content = text('Line ' . $lineCount++);

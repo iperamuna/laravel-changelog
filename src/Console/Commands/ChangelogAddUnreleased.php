@@ -2,22 +2,16 @@
 
 namespace Iperamuna\LaravelChangelog\Console\Commands;
 
-use App\Rules\SemverRule;
+use Iperamuna\LaravelChangelog\Rules\SemverRule;
 use Iperamuna\LaravelChangelog\Enums\ChangelogChangeTypes;
-use Iperamuna\LaravelChangelog\Enums\SemanticVersionTypes;
 use Iperamuna\LaravelChangelog\Services\ChangeLogDataService;
 use Iperamuna\LaravelChangelog\Services\ChangeLogService;
-use Illuminate\Cache\FileStore;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
-use League\CommonMark\Environment\Environment;
 use League\CommonMark\Exception\CommonMarkException;
-use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
-use League\CommonMark\MarkdownConverter;
-use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
-use function Laravel\Prompts\textarea;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\error;
 
 class ChangelogAddUnreleased extends Command
 {
@@ -56,20 +50,25 @@ class ChangelogAddUnreleased extends Command
     {
 
         if(!$this->changelogService->isChangeLogExist()){
-            $this->error('Changelog file not found. Please run the command "changelog:init" to create a new changelog file.');
+            error('Changelog file not found. Please run the command "changelog:init" to create a new changelog file.');
             return self::FAILURE;
         }
 
-        $this->info('Check for unreleased section in the changelog file. If it exists');
+        info('Check for unreleased section in the changelog file. If it exists');
 
         $existingUnReleasedSection = $this->changeLogDataService->getUnreleasedVersion();
+
+        if($existingUnReleasedSection){
+            info('Unreleased section already exists. Updating it using the changelog:edit-unreleased command.');
+            return self::FAILURE;
+        }
 
         $unReleasedSection = $this->addEditUnreleasedSection($existingUnReleasedSection);
 
         $this->changeLogDataService->setUnreleasedVersion($unReleasedSection);
 
         $this->changelogService->setChangeLog();
-        $this->info('Changelog file Updated successfully');
+        info('Changelog file Updated successfully');
         return self::SUCCESS;
     }
 
@@ -80,7 +79,7 @@ class ChangelogAddUnreleased extends Command
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
 
-            $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
+            info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
             while (true){
                 $content = text('Line ' . $lineCount++);

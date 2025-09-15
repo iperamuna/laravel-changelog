@@ -3,15 +3,15 @@
 namespace Iperamuna\LaravelChangelog\Console\Commands;
 
 use Iperamuna\LaravelChangelog\Enums\ChangelogChangeTypes;
-use App\Rules\SemverRule;
+use Iperamuna\LaravelChangelog\Rules\SemverRule;
 use Iperamuna\LaravelChangelog\Enums\SemanticVersionTypes;
 use Iperamuna\LaravelChangelog\Services\ChangeLogDataService;
 use Iperamuna\LaravelChangelog\Services\ChangeLogService;
 use Iperamuna\LaravelChangelog\Services\SemverService;
 use Illuminate\Console\Command;
 use League\CommonMark\Exception\CommonMarkException;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\info;
 
 class ChangelogPromoteUnRelease extends Command
 {
@@ -73,7 +73,7 @@ class ChangelogPromoteUnRelease extends Command
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
 
-            $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
+            info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
 
             if(isset($selectedReleaseContent['content'][$releaseSection->value])) {
@@ -95,7 +95,7 @@ class ChangelogPromoteUnRelease extends Command
         $releaseContentFormatted = $this->changeLogDataService->formatReleaseContent($releaseVersion, $releaseDate, $releaseUrl, $releaseSectionContent);
         $this->changeLogDataService->promoteUnreleased($releaseContentFormatted);
         $this->changelogService->setChangeLog();
-        $this->info('Release Updated successfully');
+        info('Release Updated successfully');
         return self::SUCCESS;
 
     }

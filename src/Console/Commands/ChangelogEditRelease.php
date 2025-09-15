@@ -3,8 +3,7 @@
 namespace Iperamuna\LaravelChangelog\Console\Commands;
 
 use Iperamuna\LaravelChangelog\Enums\ChangelogChangeTypes;
-use App\Rules\SemverRule;
-use Iperamuna\LaravelChangelog\Enums\SemanticVersionTypes;
+use Iperamuna\LaravelChangelog\Rules\SemverRule;
 use Iperamuna\LaravelChangelog\Services\ChangeLogDataService;
 use Iperamuna\LaravelChangelog\Services\ChangeLogService;
 use Iperamuna\LaravelChangelog\Services\SemverService;
@@ -12,6 +11,7 @@ use Illuminate\Console\Command;
 use League\CommonMark\Exception\CommonMarkException;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\info;
 
 class ChangelogEditRelease extends Command
 {
@@ -59,13 +59,13 @@ class ChangelogEditRelease extends Command
         $selectedReleaseContent = $this->changeLogDataService->getReleaseContent($selectedRelease);
 
         $releaseVersion = text(
-            label:  'What is the version of the release?',
+            label: 'What is the version of the release?',
+            default: $selectedReleaseContent['heading'],
             validate: function (string $value) {
                 return preg_match(SemverRule::REGEX, $value)
                     ? null
                     : 'Please enter a valid SemVer: 1.2.3';
-            },
-            default: $selectedReleaseContent['heading']);
+            });
 
         $releaseDate = text('What is the date of the release? (YYYY-MM-DD)', default: $selectedReleaseContent['date'] );
 
@@ -76,7 +76,7 @@ class ChangelogEditRelease extends Command
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
 
-            $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
+            info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
 
             if(isset($selectedReleaseContent['content'][$releaseSection->value])) {
@@ -98,7 +98,7 @@ class ChangelogEditRelease extends Command
         $releaseContentFormatted = $this->changeLogDataService->formatReleaseContent($releaseVersion, $releaseDate, $releaseUrl, $releaseSectionContent);
         $this->changeLogDataService->updateRelease($selectedRelease, $releaseContentFormatted);
         $this->changelogService->setChangeLog();
-        $this->info('Release Updated successfully');
+        info('Release Updated successfully');
         return self::SUCCESS;
 
     }

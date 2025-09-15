@@ -2,8 +2,9 @@
 
 namespace Iperamuna\LaravelChangelog\Console\Commands;
 
+use DateTime;
 use Iperamuna\LaravelChangelog\Enums\ChangelogChangeTypes;
-use App\Rules\SemverRule;
+use Iperamuna\LaravelChangelog\Rules\SemverRule;
 use Iperamuna\LaravelChangelog\Enums\SemanticVersionTypes;
 use Iperamuna\LaravelChangelog\Services\ChangeLogDataService;
 use Iperamuna\LaravelChangelog\Services\ChangeLogService;
@@ -12,6 +13,7 @@ use Illuminate\Console\Command;
 use League\CommonMark\Exception\CommonMarkException;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\info;
 
 class ChangelogAddNewRelease extends Command
 {
@@ -73,15 +75,19 @@ class ChangelogAddNewRelease extends Command
         $sujjestedRelease = $this->semverService->bump($lastReleaseVersion['heading'], $releaseType);
 
         $newReleaseVersion = text(
-            label:  'What is the version of the release?',
+            label: 'What is the version of the release?',
+            default: $sujjestedRelease,
             validate: function (string $value) {
                 return preg_match(SemverRule::REGEX, $value)
                     ? null
                     : 'Please enter a valid SemVer: 1.2.3';
-            },
-            default: $sujjestedRelease);
+            });
 
-        $releaseDate = text('What is the date of the release? (YYYY-MM-DD)', now()->toDateString());
+        $releaseDate = text(
+            label: 'What is the date of the release? (YYYY-MM-DD)',
+            default: now()->toDateString(),
+            validate: fn(string $value) => DateTime::createFromFormat('Y-m-d', $value) !== false ? null : 'Please enter date in YYYY-MM-DD format'
+        );
 
         $releaseUrl = text('What is the url of the release? (https://example.com/release/1.2.3)');
 
@@ -90,7 +96,7 @@ class ChangelogAddNewRelease extends Command
         $releaseSectionContent = [];
         foreach ($releaseSections as $releaseSection) {
 
-            $this->info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
+            info('Add Content to '.$releaseSection->value . ' section, line by line. Empty line to finish the section.');
             $lineCount = 1;
             while (true){
                 $content = text('Line '. $lineCount++);
@@ -106,7 +112,7 @@ class ChangelogAddNewRelease extends Command
         $releaseContentFormatted = $this->changeLogDataService->formatReleaseContent($newReleaseVersion, $releaseDate, $releaseUrl, $releaseSectionContent);
         $this->changeLogDataService->addNewRelease($releaseContentFormatted);
         $this->changelogService->setChangeLog();
-        $this->info('Release added successfully');
+        info('Release added successfully');
         return self::SUCCESS;
 
     }
